@@ -6,13 +6,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Get DB URL from .env
+# Get DB URL from .env, default to local sqlite if not set
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if not SQLALCHEMY_DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./cloud_vault.db"
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False} # check_same_thread is only for SQLite
-)
+# When deploying to Vercel, the default root SQLite file is read-only.
+# Move it to /tmp where writes are permitted.
+if "VERCEL" in os.environ and SQLALCHEMY_DATABASE_URL.startswith("sqlite:///."):
+    SQLALCHEMY_DATABASE_URL = "sqlite:////tmp/cloud_vault.db"
+
+# Only pass connect_args for SQLite database connections
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 Base = declarative_base()
 

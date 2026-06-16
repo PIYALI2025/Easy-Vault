@@ -1,4 +1,4 @@
-import magic
+import filetype
 import hashlib
 import os
 import shutil
@@ -6,13 +6,22 @@ import asyncio
 from pathlib import Path
 from fastapi import UploadFile, HTTPException
 
-VAULT_DIR = Path("vault")
+# Vercel serverless environment filesystem is read-only except /tmp
+if "VERCEL" in os.environ:
+    VAULT_DIR = Path("/tmp/vault")
+else:
+    VAULT_DIR = Path("vault")
+
 # Ensure the vault directory exists on startup
-VAULT_DIR.mkdir(exist_ok=True)
+VAULT_DIR.mkdir(parents=True, exist_ok=True)
 
 def get_file_mime_type(file_bytes: bytes) -> str:
-    """Uses python-magic to return the MIME type of a byte string."""
-    return magic.from_buffer(file_bytes, mime=True)
+    """Uses pure-python filetype to return the MIME type of a byte string."""
+    kind = filetype.guess(file_bytes)
+    if kind:
+        return kind.mime
+    return "application/octet-stream"
+
 
 async def calculate_file_hash(file: UploadFile) -> str:
     """Calculates SHA-256 hash by reading the file in 1MB chunks."""

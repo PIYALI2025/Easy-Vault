@@ -372,9 +372,13 @@ def download_file(
         elif request_status == "denied":
             logger.warning(f"Access denied for file slug {slug} (denied)", extra={"user_id": current_user.username})
             raise HTTPException(status_code=403, detail="403 Forbidden: Access Request Denied")
+        elif request_status == "approved":
+            logger.warning(f"Access expired for file slug {slug}", extra={"user_id": current_user.username})
+            raise HTTPException(status_code=403, detail="403 Forbidden: Access Expired")
         elif request_status != "approved":
             logger.warning(f"Access denied for file slug {slug} (no access)", extra={"user_id": current_user.username})
             raise HTTPException(status_code=403, detail="403 Forbidden: You do not have access to this file. Please request access.")
+
             
     file_path = storage_engine.VAULT_DIR / file_metadata.content_hash
     
@@ -691,6 +695,8 @@ def preview_file(
             raise HTTPException(status_code=403, detail="403 Forbidden: Access Request Pending")
         elif request_status == "denied":
             raise HTTPException(status_code=403, detail="403 Forbidden: Access Request Denied")
+        elif request_status == "approved":
+            raise HTTPException(status_code=403, detail="403 Forbidden: Access Expired")
         elif request_status != "approved":
             raise HTTPException(status_code=403, detail="403 Forbidden: You do not have access to this file.")
             
