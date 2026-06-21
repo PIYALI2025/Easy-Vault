@@ -439,23 +439,28 @@ def request_access_new(
     else:
         # Search all files owned by owner_id to find case-insensitive and extension-independent matches
         owner_files = db.query(models.FileMetadata).filter(models.FileMetadata.owner_id == request_data.owner_id).all()
-        matching_files = []
         q_full = request_data.filename.lower()
         q_base = os.path.splitext(request_data.filename)[0].lower()
         
-        for f in owner_files:
-            f_full = f.filename.lower()
-            f_base = os.path.splitext(f.filename)[0].lower()
-            if q_full == f_full or q_base == f_base or q_full == f_base:
-                matching_files.append(f)
-                
-        if len(matching_files) == 0:
-            raise HTTPException(status_code=404, detail="No matching files found in this user's vault.")
-        elif len(matching_files) > 1:
-            choices = [{"id": f.id, "filename": f.filename, "file_type": f.file_type} for f in matching_files]
-            return {"status": "multiple_choices", "choices": choices}
+        # Check for exact case-insensitive match first
+        exact_matches = [f for f in owner_files if f.filename.lower() == q_full]
+        if len(exact_matches) == 1:
+            file = exact_matches[0]
         else:
-            file = matching_files[0]
+            matching_files = []
+            for f in owner_files:
+                f_full = f.filename.lower()
+                f_base = os.path.splitext(f.filename)[0].lower()
+                if q_full == f_full or q_base == f_base or q_full == f_base:
+                    matching_files.append(f)
+                    
+            if len(matching_files) == 0:
+                raise HTTPException(status_code=404, detail="No matching files found in this user's vault.")
+            elif len(matching_files) > 1:
+                choices = [{"id": f.id, "filename": f.filename, "file_type": f.file_type} for f in matching_files]
+                return {"status": "multiple_choices", "choices": choices}
+            else:
+                file = matching_files[0]
             
     if file.owner_id == current_user.id:
         raise HTTPException(status_code=400, detail="You already own this file.")
@@ -753,4 +758,9 @@ def get_profile_photo(
 def get_user_me(current_user: models.User = Depends(securityfeatures.get_current_user)):
     return current_user
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+import os
+# Resolve frontend folder path using absolute path relative to this script
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

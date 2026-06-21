@@ -9,11 +9,23 @@ from fastapi import UploadFile, HTTPException
 # Vercel serverless environment filesystem is read-only except /tmp
 if "VERCEL" in os.environ:
     VAULT_DIR = Path("/tmp/vault")
+    VAULT_DIR.mkdir(parents=True, exist_ok=True)
+    # Copy pre-existing vault files to /tmp/vault
+    src_vault = Path("vault")
+    if src_vault.exists():
+        for item in src_vault.glob("**/*"):
+            if item.is_file():
+                relative_path = item.relative_to(src_vault)
+                dest_path = VAULT_DIR / relative_path
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                if not dest_path.exists():
+                    try:
+                        shutil.copy2(item, dest_path)
+                    except Exception as e:
+                        print(f"Error copying vault file {item} to /tmp/vault: {e}")
 else:
     VAULT_DIR = Path("vault")
-
-# Ensure the vault directory exists on startup
-VAULT_DIR.mkdir(parents=True, exist_ok=True)
+    VAULT_DIR.mkdir(parents=True, exist_ok=True)
 
 def get_file_mime_type(file_bytes: bytes) -> str:
     """Uses pure-python filetype to return the MIME type of a byte string."""

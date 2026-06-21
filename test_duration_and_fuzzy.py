@@ -88,6 +88,11 @@ def run_custom_tests():
     assert res_dl.text == "PDF Report Content"
     print("[+] Access is currently active.")
 
+    # Dismiss Bob's approval notification so it doesn't pollute the later checks
+    res_notif = requests.get(f"{BASE_URL}/notifications", headers=headers_b)
+    for n in res_notif.json():
+        requests.patch(f"{BASE_URL}/notifications/{n['id']}/read", headers=headers_b)
+
     # Manually expire the collaborator record in the SQLite database to simulate timed expiration
     print("[*] Simulating timed access expiration in the database...")
     conn = sqlite3.connect("cloud_vault.db")
