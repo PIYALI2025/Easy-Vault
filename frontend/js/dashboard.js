@@ -282,7 +282,7 @@ const Dashboard = {
 
     async checkPendingRequests() {
         try {
-            const data = await Utils.apiFetch('/notifications');
+            const data = await Utils.apiFetch('/notifications', { skipAuthRedirect: true });
             const badge = document.getElementById('requests-badge');
             
             if (data && data.length > 0) {
@@ -585,7 +585,7 @@ const Dashboard = {
 
     async loadUserProfile() {
         try {
-            const user = await Utils.apiFetch('/user/me');
+            const user = await Utils.apiFetch('/user/me', { skipAuthRedirect: true });
             if (user) {
                 document.getElementById('nav-username').textContent = `@${user.username}`;
                 if (user.profile_photo) {

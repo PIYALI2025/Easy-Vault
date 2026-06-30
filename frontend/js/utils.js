@@ -52,11 +52,15 @@ const Utils = {
         try {
             const response = await fetch(`${BASE_URL}${endpoint}`, config);
             
-            // Handle 401 Unauthorized globally
+            // Handle 401 Unauthorized globally — but only redirect if not already on login page
+            // and not a soft/background call (skipAuthRedirect: true)
             if (response.status === 401 && !endpoint.includes('/auth/login')) {
-                localStorage.removeItem('token');
-                window.location.href = 'login.html';
-                return null;
+                if (!options.skipAuthRedirect && !window.location.pathname.endsWith('login.html')) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                throw new Error('Session expired. Please log in again.');
             }
 
             if (!response.ok) {
